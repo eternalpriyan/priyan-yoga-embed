@@ -102,23 +102,33 @@ export OCLASS_API_TOKEN
 npm test
 ```
 
-## Deploy to Vercel
+## Deploy
 
-1. **Push to GitHub** (new repo, e.g. `eternalpriyan/priyan-yoga-embed`):
-   ```bash
-   gh repo create priyan-yoga-embed --private --source=. --remote=origin --push
-   ```
-2. **Import to Vercel** — vercel.com → Add New → Project → pick the repo.
-   Framework preset: *Other*. No build command needed (functions are zero-config).
-3. **Set environment variables** (Project → Settings → Environment Variables):
-   | Key | Value |
-   |---|---|
-   | `OCLASS_API_TOKEN` | the token from `~/vault/.env` |
-   | `ALLOW_ORIGIN` | `https://priyan.yoga,https://www.priyan.yoga` |
-   | `ENROLL_BASE` | `https://clients.oclass.app/priyan-yoga` (or a deep link — see below) |
-4. **Deploy.** Test: `curl https://<app>.vercel.app/api/courses | jq .count`
-5. *(Optional)* Add a custom domain like `embed.priyan.yoga` under Project →
-   Domains, so the embed URL is on-brand.
+The repo is connected to Vercel with Git integration — **`git push origin master`
+auto-deploys to production.** (The repo is public so Vercel's free tier builds
+it; on the free tier, private-repo builds require the commit author to be a paid
+team member, which is why this one is public. Nothing sensitive is committed.)
+
+Environment variables (Vercel → Project → Settings → Environment Variables):
+
+| Key | Value |
+|---|---|
+| `OCLASS_API_TOKEN` | the full-access Oclass token — server-side only, never returned to the browser |
+| `ALLOW_ORIGIN` | `*` (see note below) |
+| `ENROLL_BASE` | `https://clients.oclass.app/priyan-yoga` |
+
+Smoke-test after a deploy:
+
+```bash
+curl -s https://priyan-yoga-embed.vercel.app/api/courses \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['count'], 'courses')"
+```
+
+`ALLOW_ORIGIN=*` is intentional, not a shortcut: the response is curated public
+marketing data (the token never leaves the server), and origin-locked CORS
+breaks under Vercel's edge cache (a cached response can't carry a per-origin
+header). *(Optional)* add a custom domain like `embed.priyan.yoga` under
+Project → Domains for an on-brand embed URL.
 
 ## Add to Squarespace
 
@@ -127,8 +137,8 @@ On the Courses page, insert a **Code block** and paste:
 ```html
 <div id="npsoy-courses"></div>
 <script
-  src="https://<app>.vercel.app/embed.js"
-  data-api="https://<app>.vercel.app"
+  src="https://priyan-yoga-embed.vercel.app/embed.js"
+  data-api="https://priyan-yoga-embed.vercel.app"
   data-accent="#1a3c34"></script>
 ```
 
@@ -153,8 +163,8 @@ name or id.
 ```html
 <!-- Teacher Training page -->
 <div id="npsoy-courses"></div>
-<script src="https://<app>.vercel.app/embed.js"
-        data-api="https://<app>.vercel.app"
+<script src="https://priyan-yoga-embed.vercel.app/embed.js"
+        data-api="https://priyan-yoga-embed.vercel.app"
         data-category="Teacher Training"></script>
 
 <!-- Retreats page: same embed, different category -->
