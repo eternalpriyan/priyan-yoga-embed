@@ -62,7 +62,7 @@ Returns published courses that have upcoming sessions, sorted by soonest start:
       "nextStartLabel": "Sat, 6 Jun 2026",
       "venue": { "name": "Studio 1", "branch": "Pagoda Street 52A", "address": "52A Pagoda Street, S059211" },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/5816999"
     }
   ]
 }
@@ -139,10 +139,6 @@ The embed loads cover images with `referrerpolicy="no-referrer"` because
 
 ## Open items / decisions
 
-- **Enrol deep link.** Cards currently link to the booking-site root
-  (`ENROLL_BASE`). Oclass's per-course deep-link path is unconfirmed — confirm
-  the real URL and either set `ENROLL_BASE` or extend `toPublicCourse` to build
-  a per-course link from `code`/`id`.
 - **Read-only token.** Ask Oclass whether a scoped/read-only API token exists.
   The current token is full-access; the function is field-allowlisted to
   compensate, but a narrower token would reduce blast radius.

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-06-01T04:29:21.847Z",
+  "updatedAt": "2026-06-01T04:38:44.535Z",
   "count": 18,
   "courses": [
     {
@@ -21,7 +21,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/5816999"
     },
     {
       "id": 63491,
@@ -42,7 +42,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/6065058"
     },
     {
       "id": 67927,
@@ -63,7 +63,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/6371722"
     },
     {
       "id": 65238,
@@ -84,7 +84,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": false,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/6151917"
     },
     {
       "id": 67753,
@@ -105,7 +105,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/6353930"
     },
     {
       "id": 67756,
@@ -126,7 +126,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/6353934"
     },
     {
       "id": 67757,
@@ -147,7 +147,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/6353935"
     },
     {
       "id": 67758,
@@ -168,7 +168,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/6353939"
     },
     {
       "id": 67759,
@@ -189,7 +189,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/6353941"
     },
     {
       "id": 67760,
@@ -210,7 +210,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/6353943"
     },
     {
       "id": 65234,
@@ -231,7 +231,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/6151854"
     },
     {
       "id": 65231,
@@ -252,7 +252,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/6151845"
     },
     {
       "id": 65232,
@@ -273,7 +273,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/6151848"
     },
     {
       "id": 61157,
@@ -294,7 +294,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/5949745"
     },
     {
       "id": 61158,
@@ -315,7 +315,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/5949749"
     },
     {
       "id": 65236,
@@ -336,7 +336,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/6151888"
     },
     {
       "id": 65235,
@@ -357,7 +357,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": true,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/6151882"
     },
     {
       "id": 64466,
@@ -378,7 +378,7 @@
         "address": "52A Pagoda Street, S059211"
       },
       "onlineEnrollment": false,
-      "enrolUrl": "https://clients.oclass.app/priyan-yoga"
+      "enrolUrl": "https://clients.oclass.app/priyan-yoga/enrollment/schedule/6151922"
     }
   ]
 }

@@ -31,6 +31,7 @@ interface RawCourse {
 }
 
 interface RawSchedule {
+  id?: number;
   start_datetime?: string;
   venue?: RawVenue;
 }
@@ -42,6 +43,7 @@ interface Paginated<T> {
 
 // The next real session of a course (accurate datetime + venue), or null.
 export interface NextSession {
+  scheduleId: number | undefined; // Oclass schedule id — used for the enrol deep link
   startDatetime: string; // ISO 8601 with +08:00 offset, straight from Oclass
   venue: RawVenue | undefined;
 }
@@ -123,9 +125,12 @@ export function toPublicCourse(
       ? { name: v.name ?? null, branch: v.branch?.name ?? null, address: v.branch?.address ?? null }
       : null,
     onlineEnrollment: course.online_enrollment ?? false,
-    // Best-effort public booking link. The per-course deep link is unconfirmed;
-    // links to the company booking site by default. Override via ENROLL_BASE.
-    enrolUrl: enrolBase,
+    // Deep link to the next session's enrolment page:
+    //   {enrolBase}/enrollment/schedule/{scheduleId}
+    // Falls back to the booking-site root if we have no upcoming session id.
+    enrolUrl: next?.scheduleId
+      ? `${enrolBase}/enrollment/schedule/${next.scheduleId}`
+      : enrolBase,
   };
 }
 
@@ -165,7 +170,7 @@ export async function fetchNextSession(
   );
   const row = data.results?.[0];
   if (!row?.start_datetime) return null;
-  return { startDatetime: row.start_datetime, venue: row.venue };
+  return { scheduleId: row.id, startDatetime: row.start_datetime, venue: row.venue };
 }
 
 // ---- Orchestration ---------------------------------------------------------
