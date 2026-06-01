@@ -251,6 +251,36 @@ export async function fetchNextSession(
 
 // ---- Orchestration ---------------------------------------------------------
 
+// Sort by soonest real next session; courses without one fall to the bottom,
+// then alphabetical. (Shared by the grid and the single-course lookup.)
+function bySoonest(a: PublicCourse, b: PublicCourse): number {
+  if (a.nextStart && b.nextStart) return a.nextStart < b.nextStart ? -1 : 1;
+  if (a.nextStart) return -1;
+  if (b.nextStart) return 1;
+  return a.title.localeCompare(b.title);
+}
+
+// A live course = published, not archived, has an upcoming session.
+function isLive(c: RawCourse): boolean {
+  return Boolean(c.publish) && !c.archived && (c.upcoming_schedule_count ?? 0) > 0;
+}
+
+// Enrich a set of raw courses with their real next session (in parallel) and
+// transform to the public shape, sorted soonest-first.
+async function enrich(
+  raw: RawCourse[],
+  token: string,
+  now: Date,
+  enrolBase: string,
+): Promise<PublicCourse[]> {
+  const sessions = await Promise.all(
+    raw.map((c) =>
+      fetchNextSession(token, c.id, now).catch(() => null /* don't fail the whole set */),
+    ),
+  );
+  return raw.map((c, i) => toPublicCourse(c, sessions[i] ?? null, enrolBase)).sort(bySoonest);
+}
+
 // Fetch courses -> keep published/live/with-upcoming -> optional category
 // filter -> enrich each with its real next session (parallel) -> sort by
 // soonest next session.
@@ -261,26 +291,32 @@ export async function getPublicCourses(
   categoryFilter: string[] = [],
 ): Promise<PublicCourse[]> {
   const raw = await fetchRawCourses(token);
-  const live = raw.filter(
+  const live = raw.filter((c) => isLive(c) && matchesCategory(c, categoryFilter));
+  return enrich(live, token, now, enrolBase);
+}
+
+// Find the single soonest-upcoming course whose title contains `query`
+// (case-insensitive substring). Stable across batches: the id and code change
+// each cohort, but the title does not — so `data-course="200 Hour Yoga Teacher
+// Training"` keeps resolving to the next batch as new ones are scheduled.
+// Optional category filter narrows first. Returns null if nothing matches.
+export async function getPublicCourseByQuery(
+  token: string,
+  now: Date,
+  enrolBase: string,
+  query: string,
+  categoryFilter: string[] = [],
+): Promise<PublicCourse | null> {
+  const q = query.trim().toLowerCase();
+  if (!q) return null;
+  const raw = await fetchRawCourses(token);
+  const matches = raw.filter(
     (c) =>
-      c.publish &&
-      !c.archived &&
-      (c.upcoming_schedule_count ?? 0) > 0 &&
-      matchesCategory(c, categoryFilter),
+      isLive(c) &&
+      matchesCategory(c, categoryFilter) &&
+      (c.title ?? "").toLowerCase().includes(q),
   );
-
-  const sessions = await Promise.all(
-    live.map((c) =>
-      fetchNextSession(token, c.id, now).catch(() => null /* don't fail the whole grid */),
-    ),
-  );
-
-  return live
-    .map((c, i) => toPublicCourse(c, sessions[i] ?? null, enrolBase))
-    .sort((a, b) => {
-      if (a.nextStart && b.nextStart) return a.nextStart < b.nextStart ? -1 : 1;
-      if (a.nextStart) return -1;
-      if (b.nextStart) return 1;
-      return a.title.localeCompare(b.title);
-    });
+  if (!matches.length) return null;
+  const courses = await enrich(matches, token, now, enrolBase);
+  return courses[0] ?? null;
 }

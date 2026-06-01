@@ -14,22 +14,33 @@
  *   data-limit     Max number of cards to show (default: all).
  *   data-category  Show only this Oclass category (e.g. "Teacher Training").
  *                  Comma-separate for several. Omit to show all categories.
+ *   data-course    Single-course mode: a title substring (e.g. "200 Hour Yoga
+ *                  Teacher Training"). Renders ONE hero card for the soonest
+ *                  upcoming batch matching it — survives new cohort ids/codes.
  *   data-accent    Brand accent colour (default "#1a3c34").
  */
 (function () {
   "use strict";
 
   var script = document.currentScript;
-  var base =
-    (script && script.dataset.endpoint) ||
-    ((script && script.dataset.api ? script.dataset.api.replace(/\/$/, "") : "") + "/api/courses");
+  var courseQuery = script && script.dataset.course ? script.dataset.course.trim() : "";
+  var single = !!courseQuery; // single-course hero vs full grid
   var category = script && script.dataset.category ? script.dataset.category.trim() : "";
-  var endpoint = category
-    ? base + (base.indexOf("?") === -1 ? "?" : "&") + "category=" + encodeURIComponent(category)
+
+  // Pick the endpoint: data-endpoint overrides everything (local preview);
+  // otherwise data-api + the right path for the mode.
+  var apiBase = script && script.dataset.api ? script.dataset.api.replace(/\/$/, "") : "";
+  var base = (script && script.dataset.endpoint) || apiBase + (single ? "/api/course" : "/api/courses");
+  var params = [];
+  if (single) params.push("q=" + encodeURIComponent(courseQuery));
+  if (category) params.push("category=" + encodeURIComponent(category));
+  var endpoint = params.length
+    ? base + (base.indexOf("?") === -1 ? "?" : "&") + params.join("&")
     : base;
 
   var cfg = {
     endpoint: endpoint,
+    single: single,
     mount: (script && script.dataset.mount) || "#npsoy-courses",
     limit: script && script.dataset.limit ? parseInt(script.dataset.limit, 10) : 0,
     accent: (script && script.dataset.accent) || "#1a3c34",
@@ -64,7 +75,20 @@
       ".npsoy-state{padding:48px 16px;text-align:center;color:#7a817b;font-family:'Raleway',sans-serif;font-weight:300;}",
       ".npsoy-skel{background:linear-gradient(100deg,#f1f0eb 30%,#f8f7f3 50%,#f1f0eb 70%);background-size:200% 100%;animation:npsoy-shimmer 1.3s infinite;border-radius:14px;height:360px;}",
       "@keyframes npsoy-shimmer{to{background-position:-200% 0;}}",
-      "@media(max-width:520px){.npsoy-grid{grid-template-columns:1fr;gap:20px;}}",
+      // Single-course hero: one full-width card, banner over a roomier body.
+      ".npsoy-single{display:block;}",
+      ".npsoy-single .npsoy-card{flex-direction:column;}",
+      ".npsoy-single .npsoy-thumb{aspect-ratio:2160/764;}",
+      ".npsoy-single .npsoy-body{padding:30px 32px 32px;gap:2px;}",
+      ".npsoy-single .npsoy-title{font-size:1.55rem;line-height:1.22;margin-bottom:12px;}",
+      ".npsoy-single .npsoy-summary{font-size:1rem;-webkit-line-clamp:4;margin-bottom:20px;max-width:60ch;}",
+      ".npsoy-single .npsoy-meta{font-size:.85rem;gap:5px;}",
+      ".npsoy-btn{margin-top:22px;align-self:flex-start;display:inline-flex;align-items:center;gap:9px;background:var(--npsoy-accent);color:#fff;padding:13px 26px;border-radius:999px;font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;transition:transform .2s ease,box-shadow .2s ease,opacity .2s ease;}",
+      ".npsoy-btn::after{content:'\\2192';transition:transform .2s ease;}",
+      ".npsoy-btn:hover{opacity:.92;box-shadow:0 10px 26px rgba(26,60,52,.22);}",
+      ".npsoy-btn:hover::after{transform:translateX(4px);}",
+      "@media(min-width:760px){.npsoy-single .npsoy-card{flex-direction:row;}.npsoy-single .npsoy-thumb{flex:0 0 46%;aspect-ratio:auto;min-height:300px;}.npsoy-single .npsoy-body{flex:1;justify-content:center;padding:38px 40px;}}",
+      "@media(max-width:520px){.npsoy-grid{grid-template-columns:1fr;gap:20px;}.npsoy-single .npsoy-body{padding:24px 22px 26px;}.npsoy-single .npsoy-title{font-size:1.32rem;}}",
     ].join("\n");
     var el = document.createElement("style");
     el.id = STYLE_ID;
@@ -94,7 +118,7 @@
     });
   }
 
-  function renderCard(course) {
+  function buildThumb(course) {
     var thumb = h("div", {
       class: "npsoy-thumb",
       style: "background:" + (course.color || cfg.accent),
@@ -122,7 +146,10 @@
     if (dateText) {
       thumb.appendChild(h("span", { class: "npsoy-date", text: dateText }));
     }
+    return thumb;
+  }
 
+  function buildMeta(course) {
     var meta = h("div", { class: "npsoy-meta" });
     if (course.venue && (course.venue.name || course.venue.branch)) {
       var place = [course.venue.branch, course.venue.name].filter(Boolean).join(" · ");
@@ -140,11 +167,14 @@
         }),
       );
     }
+    return meta;
+  }
 
+  function renderCard(course) {
     var body = h("div", { class: "npsoy-body" }, [
       h("h3", { class: "npsoy-title", text: course.title }),
       h("p", { class: "npsoy-summary", text: course.summary || "" }),
-      meta,
+      buildMeta(course),
       h("span", { class: "npsoy-cta", text: "View & Enrol" }),
     ]);
 
@@ -157,8 +187,26 @@
         rel: "noopener",
         "aria-label": course.title,
       },
-      [thumb, body],
+      [buildThumb(course), body],
     );
+  }
+
+  // Single-course hero: a non-anchor card with a prominent enrol button (so we
+  // don't nest an <a> inside an <a>).
+  function renderSingleCourse(course) {
+    var body = h("div", { class: "npsoy-body" }, [
+      h("h3", { class: "npsoy-title", text: course.title }),
+      h("p", { class: "npsoy-summary", text: course.summary || "" }),
+      buildMeta(course),
+      h("a", {
+        class: "npsoy-btn",
+        href: course.enrolUrl || "#",
+        target: "_blank",
+        rel: "noopener",
+        text: "View & Enrol",
+      }),
+    ]);
+    return h("div", { class: "npsoy-card" }, [buildThumb(course), body]);
   }
 
   function render(root, courses) {
@@ -175,7 +223,22 @@
     root.appendChild(grid);
   }
 
+  function renderSingle(root, course) {
+    root.textContent = "";
+    if (!course) {
+      root.appendChild(
+        h("div", { class: "npsoy-state", text: "No upcoming session for this course right now — check back soon." }),
+      );
+      return;
+    }
+    root.appendChild(h("div", { class: "npsoy-single" }, [renderSingleCourse(course)]));
+  }
+
   function renderSkeleton(root) {
+    if (cfg.single) {
+      root.appendChild(h("div", { class: "npsoy-single" }, [h("div", { class: "npsoy-skel" })]));
+      return;
+    }
     var grid = h("div", { class: "npsoy-grid" });
     for (var i = 0; i < 6; i++) grid.appendChild(h("div", { class: "npsoy-skel" }));
     root.appendChild(grid);
@@ -197,7 +260,8 @@
         return r.json();
       })
       .then(function (data) {
-        render(root, (data && data.courses) || []);
+        if (cfg.single) renderSingle(root, (data && data.course) || null);
+        else render(root, (data && data.courses) || []);
       })
       .catch(function (err) {
         console.error("[npsoy-courses]", err);

@@ -3,7 +3,8 @@
 // the environment) does one live fetch to confirm the end-to-end path.
 
 import { readFileSync } from "node:fs";
-import { toPublicCourse, getPublicCourses } from "../lib/oclass.ts";
+import { toPublicCourse, getPublicCourses, getPublicCourseByQuery } from "../lib/oclass.ts";
+import { getCurrentTheme } from "../lib/weekly-theme.ts";
 
 const now = new Date();
 const ENROL = "https://clients.oclass.app/priyan-yoga";
@@ -77,10 +78,57 @@ if (token) {
     for (const c of tt) console.log(`    • ${c.title} [${c.categories.map((x) => x.name).join(", ")}]`);
     const wrong = tt.filter((c) => !c.categories.some((x) => x.name === "Teacher Training"));
     console.log(wrong.length === 0 ? "  ✓ all match the filter" : `  ✗ ${wrong.length} off-category`);
+
+    // Single-course lookup by title substring (the /api/course path)
+    section("LIVE — getPublicCourseByQuery() single-course lookup");
+    const oneQ = "200 Hour Yoga Teacher Training";
+    const one = await getPublicCourseByQuery(token, now, ENROL, oneQ);
+    console.log(`  q="${oneQ}" -> ${one ? `${one.title} | ${one.dateLabel} | ${one.enrolUrl}` : "null"}`);
+    if (one && !one.title.toLowerCase().includes(oneQ.toLowerCase())) {
+      console.log("  ✗ result title does not contain the query");
+      process.exitCode = 1;
+    } else if (one) {
+      console.log("  ✓ single result matches the query");
+    }
+    const none = await getPublicCourseByQuery(token, now, ENROL, "zzz-no-such-course");
+    console.log(none === null ? "  ✓ no-match returns null" : "  ✗ expected null for no match");
   } catch (e) {
     console.log(`  ✗ live fetch failed: ${e.message}`);
     process.exitCode = 1;
   }
 } else {
   section("LIVE — skipped (no OCLASS_API_TOKEN in env)");
+}
+
+// ---- 3. Weekly theme: allowlist guard + live fetch ----------------------
+const THEME_ALLOWED = new Set([
+  "name", "week", "category", "subCategory", "scheduled", "summary",
+  "youtubeLink", "hasImage",
+]);
+const notionKey = process.env.NOTION_API_KEY;
+if (notionKey) {
+  section("LIVE — getCurrentTheme() against Notion + allowlist guard");
+  try {
+    const theme = await getCurrentTheme(notionKey, now);
+    if (!theme) {
+      console.log("  ⚠ no current theme returned (empty DB or all unscheduled)");
+    } else {
+      console.log(`  ✓ theme: "${theme.name}" (week ${theme.week}) | ${theme.category} | image:${theme.hasImage}`);
+      let tLeaks = 0;
+      for (const k of Object.keys(theme)) {
+        if (!THEME_ALLOWED.has(k)) {
+          console.log(`  ✗ LEAK: unexpected theme field "${k}"`);
+          tLeaks++;
+        }
+      }
+      console.log(tLeaks === 0 ? "  ✓ no unexpected fields" : `  ✗ ${tLeaks} leak(s)`);
+      if (tLeaks) process.exitCode = 1;
+      console.log("\n" + JSON.stringify(theme, null, 2));
+    }
+  } catch (e) {
+    console.log(`  ✗ theme fetch failed: ${e.message}`);
+    process.exitCode = 1;
+  }
+} else {
+  section("LIVE — weekly theme skipped (no NOTION_API_KEY in env)");
 }
