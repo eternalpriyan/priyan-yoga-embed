@@ -1,0 +1,208 @@
+/*
+ * NPSOY Courses embed — renders the upcoming-courses grid from the
+ * priyan-yoga-embed Vercel API onto any page (Squarespace code block etc.).
+ *
+ * Usage:
+ *   <div id="npsoy-courses"></div>
+ *   <script src="https://YOUR-APP.vercel.app/embed.js"
+ *           data-api="https://YOUR-APP.vercel.app"></script>
+ *
+ * Config (data-* on the <script> tag):
+ *   data-api       Base URL of the deployed API (appends /api/courses).
+ *   data-endpoint  Full URL to the JSON (overrides data-api; used for local preview).
+ *   data-mount     CSS selector of the mount element (default "#npsoy-courses").
+ *   data-limit     Max number of cards to show (default: all).
+ *   data-accent    Brand accent colour (default "#1a3c34").
+ */
+(function () {
+  "use strict";
+
+  var script = document.currentScript;
+  var cfg = {
+    endpoint:
+      (script && script.dataset.endpoint) ||
+      ((script && script.dataset.api ? script.dataset.api.replace(/\/$/, "") : "") +
+        "/api/courses"),
+    mount: (script && script.dataset.mount) || "#npsoy-courses",
+    limit: script && script.dataset.limit ? parseInt(script.dataset.limit, 10) : 0,
+    accent: (script && script.dataset.accent) || "#1a3c34",
+  };
+
+  var STYLE_ID = "npsoy-courses-style";
+
+  function injectStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+    var css = [
+      "@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600&display=swap');",
+      ".npsoy-courses{--npsoy-accent:" +
+        cfg.accent +
+        ";font-family:'Raleway',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#26302c;line-height:1.55;box-sizing:border-box;}",
+      ".npsoy-courses *,.npsoy-courses *::before,.npsoy-courses *::after{box-sizing:inherit;}",
+      ".npsoy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:28px;margin:0;padding:0;list-style:none;}",
+      ".npsoy-card{position:relative;display:flex;flex-direction:column;background:#fff;border:1px solid #ecebe6;border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease;}",
+      ".npsoy-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(26,60,52,.13);border-color:#dcdbd3;}",
+      ".npsoy-card:focus-visible{outline:2px solid var(--npsoy-accent);outline-offset:3px;}",
+      ".npsoy-thumb{position:relative;aspect-ratio:3/2;background:var(--npsoy-accent);overflow:hidden;}",
+      ".npsoy-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;border:0;}",
+      ".npsoy-thumb-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.6rem;font-weight:300;color:rgba(255,255,255,.85);letter-spacing:.04em;}",
+      ".npsoy-date{position:absolute;left:14px;bottom:14px;display:inline-flex;align-items:baseline;gap:6px;background:rgba(255,255,255,.94);backdrop-filter:saturate(1.2);padding:7px 12px;border-radius:999px;font-size:.74rem;font-weight:600;letter-spacing:.02em;color:var(--npsoy-accent);box-shadow:0 2px 8px rgba(0,0,0,.08);}",
+      ".npsoy-body{display:flex;flex-direction:column;flex:1;padding:20px 20px 22px;}",
+      ".npsoy-title{font-size:1.12rem;font-weight:600;margin:0 0 8px;letter-spacing:-.01em;line-height:1.3;}",
+      ".npsoy-summary{font-size:.9rem;font-weight:300;color:#5d655f;margin:0 0 16px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}",
+      ".npsoy-meta{margin-top:auto;font-size:.78rem;color:#7a817b;font-weight:400;display:flex;flex-direction:column;gap:3px;}",
+      ".npsoy-meta-row{display:flex;align-items:center;gap:7px;}",
+      ".npsoy-cta{margin-top:16px;display:inline-flex;align-items:center;gap:7px;align-self:flex-start;font-size:.82rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--npsoy-accent);}",
+      ".npsoy-cta::after{content:'\\2192';transition:transform .2s ease;}",
+      ".npsoy-card:hover .npsoy-cta::after{transform:translateX(4px);}",
+      ".npsoy-state{padding:48px 16px;text-align:center;color:#7a817b;font-family:'Raleway',sans-serif;font-weight:300;}",
+      ".npsoy-skel{background:linear-gradient(100deg,#f1f0eb 30%,#f8f7f3 50%,#f1f0eb 70%);background-size:200% 100%;animation:npsoy-shimmer 1.3s infinite;border-radius:14px;height:360px;}",
+      "@keyframes npsoy-shimmer{to{background-position:-200% 0;}}",
+      "@media(max-width:520px){.npsoy-grid{grid-template-columns:1fr;gap:20px;}}",
+    ].join("\n");
+    var el = document.createElement("style");
+    el.id = STYLE_ID;
+    el.textContent = css;
+    document.head.appendChild(el);
+  }
+
+  function h(tag, attrs, children) {
+    var el = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        if (k === "style") el.setAttribute("style", attrs[k]);
+        else if (k === "text") el.textContent = attrs[k];
+        else if (k === "html") el.innerHTML = attrs[k];
+        else el.setAttribute(k, attrs[k]);
+      });
+    }
+    (children || []).forEach(function (c) {
+      if (c) el.appendChild(c);
+    });
+    return el;
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function renderCard(course) {
+    var thumb = h("div", {
+      class: "npsoy-thumb",
+      style: "background:" + (course.color || cfg.accent),
+    });
+    // Fallback initial sits behind the image; revealed if the image fails.
+    thumb.appendChild(
+      h("span", { class: "npsoy-thumb-fallback", text: (course.title || "?").charAt(0) }),
+    );
+    if (course.coverImage) {
+      // referrerpolicy=no-referrer: media.oclass.app 403s requests that carry a
+      // foreign Referer header, but serves fine with none. onerror -> fallback.
+      var img = h("img", {
+        class: "npsoy-img",
+        src: course.coverImage,
+        alt: "",
+        loading: "lazy",
+        referrerpolicy: "no-referrer",
+      });
+      img.addEventListener("error", function () {
+        img.remove();
+      });
+      thumb.appendChild(img);
+    }
+    if (course.nextStartLabel) {
+      thumb.appendChild(h("span", { class: "npsoy-date", text: course.nextStartLabel }));
+    }
+
+    var meta = h("div", { class: "npsoy-meta" });
+    if (course.venue && (course.venue.name || course.venue.branch)) {
+      var place = [course.venue.branch, course.venue.name].filter(Boolean).join(" · ");
+      meta.appendChild(h("div", { class: "npsoy-meta-row", text: "📍 " + place }));
+    }
+    if (course.upcomingSessions) {
+      meta.appendChild(
+        h("div", {
+          class: "npsoy-meta-row",
+          text:
+            "🗓 " +
+            course.upcomingSessions +
+            (course.upcomingSessions === 1 ? " session" : " sessions") +
+            " upcoming",
+        }),
+      );
+    }
+
+    var body = h("div", { class: "npsoy-body" }, [
+      h("h3", { class: "npsoy-title", text: course.title }),
+      h("p", { class: "npsoy-summary", text: course.summary || "" }),
+      meta,
+      h("span", { class: "npsoy-cta", text: "View & Enrol" }),
+    ]);
+
+    return h(
+      "a",
+      {
+        class: "npsoy-card",
+        href: course.enrolUrl || "#",
+        target: "_blank",
+        rel: "noopener",
+        "aria-label": course.title,
+      },
+      [thumb, body],
+    );
+  }
+
+  function render(root, courses) {
+    root.textContent = "";
+    if (!courses.length) {
+      root.appendChild(h("div", { class: "npsoy-state", text: "No upcoming courses right now — check back soon." }));
+      return;
+    }
+    var list = cfg.limit > 0 ? courses.slice(0, cfg.limit) : courses;
+    var grid = h("ul", { class: "npsoy-grid" });
+    list.forEach(function (c) {
+      grid.appendChild(h("li", {}, [renderCard(c)]));
+    });
+    root.appendChild(grid);
+  }
+
+  function renderSkeleton(root) {
+    var grid = h("div", { class: "npsoy-grid" });
+    for (var i = 0; i < 6; i++) grid.appendChild(h("div", { class: "npsoy-skel" }));
+    root.appendChild(grid);
+  }
+
+  function init() {
+    var root = document.querySelector(cfg.mount);
+    if (!root) {
+      console.warn("[npsoy-courses] mount element not found:", cfg.mount);
+      return;
+    }
+    injectStyles();
+    root.classList.add("npsoy-courses");
+    renderSkeleton(root);
+
+    fetch(cfg.endpoint, { headers: { Accept: "application/json" } })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        render(root, (data && data.courses) || []);
+      })
+      .catch(function (err) {
+        console.error("[npsoy-courses]", err);
+        root.textContent = "";
+        root.appendChild(
+          h("div", { class: "npsoy-state", text: "Unable to load courses right now." }),
+        );
+      });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();

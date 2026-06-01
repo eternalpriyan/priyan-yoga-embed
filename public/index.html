@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NPSOY Courses — embed preview</title>
+    <style>
+      body {
+        font-family: "Raleway", -apple-system, sans-serif;
+        margin: 0;
+        background: #faf9f6;
+        color: #26302c;
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 56px 24px 80px;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 0.72rem;
+        color: #9a9387;
+        font-weight: 600;
+        margin: 0 0 10px;
+      }
+      h1 {
+        font-weight: 300;
+        font-size: 2.3rem;
+        letter-spacing: -0.02em;
+        margin: 0 0 8px;
+      }
+      .sub {
+        color: #6f766f;
+        font-weight: 300;
+        margin: 0 0 40px;
+        max-width: 60ch;
+      }
+      .note {
+        margin-top: 48px;
+        padding: 14px 18px;
+        background: #f1f0eb;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        color: #6f766f;
+      }
+      code {
+        background: #e7e6e0;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 0.82em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <p class="eyebrow">Nithya Priyan School of Yoga</p>
+      <h1>Upcoming Courses &amp; Immersions</h1>
+      <p class="sub">
+        Live preview of the courses embed, rendering the bundled
+        <code>sample-courses.json</code> fixture. In production the embed points at
+        <code>/api/courses</code> on the deployed Vercel app.
+      </p>
+
+      <!-- This is exactly what goes into a Squarespace code block -->
+      <div id="npsoy-courses"></div>
+
+      <p class="note">
+        Preview is reading a static snapshot. To preview against the live function instead, run
+        <code>vercel dev</code> and change the script tag below to
+        <code>data-api="http://localhost:3000"</code>.
+      </p>
+    </div>
+
+    <!-- Local preview: point at the bundled fixture -->
+    <script src="./embed.js" data-endpoint="./sample-courses.json" data-accent="#1a3c34"></script>
+  </body>
+</html>
