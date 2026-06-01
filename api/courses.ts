@@ -34,11 +34,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   try {
     const enrolBase = process.env.ENROLL_BASE ?? "https://clients.oclass.app/priyan-yoga";
-    const courses = await getPublicCourses(token, new Date(), enrolBase);
 
-    // Edge-cache 15 min, serve stale up to 1h while revalidating.
+    // ?category=Teacher Training  (comma-separated for multiple; matches name or id)
+    const raw = req.query.category;
+    const categoryFilter = (Array.isArray(raw) ? raw.join(",") : raw ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const courses = await getPublicCourses(token, new Date(), enrolBase, categoryFilter);
+
+    // Edge-cache 15 min, serve stale up to 1h while revalidating. Cache key
+    // includes the query string, so each category caches independently.
     res.setHeader("Cache-Control", "public, s-maxage=900, stale-while-revalidate=3600");
-    res.status(200).json({ updatedAt: new Date().toISOString(), count: courses.length, courses });
+    res.status(200).json({
+      updatedAt: new Date().toISOString(),
+      category: categoryFilter.length ? categoryFilter : null,
+      count: courses.length,
+      courses,
+    });
   } catch (err) {
     res.status(502).json({ error: "Upstream fetch failed" });
     // Log server-side only — never leak upstream detail to the browser.

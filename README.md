@@ -57,7 +57,11 @@ Returns published courses that have upcoming sessions, sorted by soonest start:
       "color": "#004d40ff",
       "durationMin": 1200,
       "creditsRequired": "1.00",
+      "categories": [{ "id": 1067, "name": "Teacher Training" }],
       "upcomingSessions": 4,
+      "startDate": "2026-04-04",
+      "endDate": "2026-06-14",
+      "dateLabel": "4 Apr – 14 Jun 2026",
       "nextStart": "2026-06-06T10:00:00+08:00",
       "nextStartLabel": "Sat, 6 Jun 2026",
       "venue": { "name": "Studio 1", "branch": "Pagoda Street 52A", "address": "52A Pagoda Street, S059211" },
@@ -72,6 +76,10 @@ Returns published courses that have upcoming sessions, sorted by soonest start:
 course from `/com/schedule/schedules/?klass_id=…&ordering=start_datetime&limit=1`
 — not derived from the recurrence rule. (The rule misses manually-added sessions
 and carries no timezone; the schedule endpoint is the source of truth.)
+`startDate`/`endDate` are the cohort span from the recurrence definition
+(`dtstart`/`until`, plain dates), and `dateLabel` is a display-ready range that
+collapses shared month/year (`4 Apr – 14 Jun 2026`, `25–29 Jun 2026`,
+`13 Jun 2026` for a single day).
 
 ## Local development
 
@@ -129,10 +137,41 @@ Optional `data-*` attributes on the script tag:
 | Attribute | Default | Purpose |
 |---|---|---|
 | `data-api` | — | Base URL of the deployed app (appends `/api/courses`) |
+| `data-category` | all | Show only this Oclass category (see below). Comma-separate for several. |
 | `data-mount` | `#npsoy-courses` | Selector of the mount element |
 | `data-limit` | all | Max number of cards |
 | `data-accent` | `#1a3c34` | Brand accent (chips, fallback, hover) |
 | `data-endpoint` | — | Full JSON URL; overrides `data-api` (used for local preview) |
+
+### Filtering by category — one embed, many pages
+
+`data-category` lets you reuse the same embed on different pages, each showing a
+different slice. Filtering happens **server-side** (`?category=` on the API), so
+each page only receives its own courses. Match is case-insensitive, by category
+name or id.
+
+```html
+<!-- Teacher Training page -->
+<div id="npsoy-courses"></div>
+<script src="https://<app>.vercel.app/embed.js"
+        data-api="https://<app>.vercel.app"
+        data-category="Teacher Training"></script>
+
+<!-- Retreats page: same embed, different category -->
+<script ... data-category="Weekends and Overseas Retreats"></script>
+```
+
+Categories currently in use (from Oclass):
+
+| Category | Examples |
+|---|---|
+| `Teacher Training` | 200hr YTT, Meditation TT |
+| `Learning Yoga` | Joy in the Body, Yoga Foundations, Pranayama Weekend |
+| `Weekends and Overseas Retreats` | Sri Lanka, Chiang Rai, Ubud |
+| `Guest Teachers` | MBSR, Women's Weekends, Ken Harakuma series |
+
+These come straight from Oclass — add/rename categories there and they flow
+through. Hit `/api/courses` with no filter to see every course's `categories`.
 
 The embed loads cover images with `referrerpolicy="no-referrer"` because
 `media.oclass.app` returns 403 to requests carrying a foreign `Referer`.

@@ -31,8 +31,9 @@ for (const c of courses) {
 section("SECURITY — allowlist guard");
 const ALLOWED = new Set([
   "id", "code", "title", "summary", "descriptionHtml", "coverImage", "color",
-  "durationMin", "creditsRequired", "upcomingSessions", "nextStart",
-  "nextStartLabel", "venue", "onlineEnrollment", "enrolUrl",
+  "durationMin", "creditsRequired", "categories", "upcomingSessions",
+  "startDate", "endDate", "dateLabel", "nextStart", "nextStartLabel",
+  "venue", "onlineEnrollment", "enrolUrl",
 ]);
 let leaks = 0;
 for (const c of courses) {
@@ -64,6 +65,18 @@ if (token) {
     const missing = live.filter((c) => !c.nextStart).map((c) => c.title);
     console.log(`\n  courses with a resolved next date: ${live.length - missing.length}/${live.length}`);
     if (missing.length) console.log("  no date for:", missing.join("; "));
+
+    // Date-range labels
+    console.log("\n  date-range labels (cohort start–end):");
+    for (const c of live.slice(0, 6)) console.log(`    ${c.dateLabel}  —  ${c.title.slice(0, 40)}`);
+
+    // Category filter
+    section("LIVE — category filter: 'Teacher Training'");
+    const tt = await getPublicCourses(token, now, ENROL, ["Teacher Training"]);
+    console.log(`  ${tt.length} course(s):`);
+    for (const c of tt) console.log(`    • ${c.title} [${c.categories.map((x) => x.name).join(", ")}]`);
+    const wrong = tt.filter((c) => !c.categories.some((x) => x.name === "Teacher Training"));
+    console.log(wrong.length === 0 ? "  ✓ all match the filter" : `  ✗ ${wrong.length} off-category`);
   } catch (e) {
     console.log(`  ✗ live fetch failed: ${e.message}`);
     process.exitCode = 1;

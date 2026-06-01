@@ -12,17 +12,24 @@
  *   data-endpoint  Full URL to the JSON (overrides data-api; used for local preview).
  *   data-mount     CSS selector of the mount element (default "#npsoy-courses").
  *   data-limit     Max number of cards to show (default: all).
+ *   data-category  Show only this Oclass category (e.g. "Teacher Training").
+ *                  Comma-separate for several. Omit to show all categories.
  *   data-accent    Brand accent colour (default "#1a3c34").
  */
 (function () {
   "use strict";
 
   var script = document.currentScript;
+  var base =
+    (script && script.dataset.endpoint) ||
+    ((script && script.dataset.api ? script.dataset.api.replace(/\/$/, "") : "") + "/api/courses");
+  var category = script && script.dataset.category ? script.dataset.category.trim() : "";
+  var endpoint = category
+    ? base + (base.indexOf("?") === -1 ? "?" : "&") + "category=" + encodeURIComponent(category)
+    : base;
+
   var cfg = {
-    endpoint:
-      (script && script.dataset.endpoint) ||
-      ((script && script.dataset.api ? script.dataset.api.replace(/\/$/, "") : "") +
-        "/api/courses"),
+    endpoint: endpoint,
     mount: (script && script.dataset.mount) || "#npsoy-courses",
     limit: script && script.dataset.limit ? parseInt(script.dataset.limit, 10) : 0,
     accent: (script && script.dataset.accent) || "#1a3c34",
@@ -42,7 +49,7 @@
       ".npsoy-card{position:relative;display:flex;flex-direction:column;background:#fff;border:1px solid #ecebe6;border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease;}",
       ".npsoy-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(26,60,52,.13);border-color:#dcdbd3;}",
       ".npsoy-card:focus-visible{outline:2px solid var(--npsoy-accent);outline-offset:3px;}",
-      ".npsoy-thumb{position:relative;aspect-ratio:3/2;background:var(--npsoy-accent);overflow:hidden;}",
+      ".npsoy-thumb{position:relative;aspect-ratio:2160/764;background:var(--npsoy-accent);overflow:hidden;}",
       ".npsoy-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;border:0;}",
       ".npsoy-thumb-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.6rem;font-weight:300;color:rgba(255,255,255,.85);letter-spacing:.04em;}",
       ".npsoy-date{position:absolute;left:14px;bottom:14px;display:inline-flex;align-items:baseline;gap:6px;background:rgba(255,255,255,.94);backdrop-filter:saturate(1.2);padding:7px 12px;border-radius:999px;font-size:.74rem;font-weight:600;letter-spacing:.02em;color:var(--npsoy-accent);box-shadow:0 2px 8px rgba(0,0,0,.08);}",
@@ -111,8 +118,9 @@
       });
       thumb.appendChild(img);
     }
-    if (course.nextStartLabel) {
-      thumb.appendChild(h("span", { class: "npsoy-date", text: course.nextStartLabel }));
+    var dateText = course.dateLabel || course.nextStartLabel;
+    if (dateText) {
+      thumb.appendChild(h("span", { class: "npsoy-date", text: dateText }));
     }
 
     var meta = h("div", { class: "npsoy-meta" });
