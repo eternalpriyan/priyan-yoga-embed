@@ -17,6 +17,7 @@
  *   data-course    Single-course mode: a title substring (e.g. "200 Hour Yoga
  *                  Teacher Training"). Renders ONE hero card for the soonest
  *                  upcoming batch matching it — survives new cohort ids/codes.
+ *   data-venue     Show the venue/address line? "show" (default) or "hide".
  *   data-accent    Brand accent colour (default "#1a3c34").
  */
 (function () {
@@ -26,6 +27,8 @@
   var courseQuery = script && script.dataset.course ? script.dataset.course.trim() : "";
   var single = !!courseQuery; // single-course hero vs full grid
   var category = script && script.dataset.category ? script.dataset.category.trim() : "";
+  var venueAttr = script && script.dataset.venue ? script.dataset.venue.trim().toLowerCase() : "";
+  var showVenue = !(venueAttr === "hide" || venueAttr === "off" || venueAttr === "false" || venueAttr === "no");
 
   // Pick the endpoint: data-endpoint overrides everything (local preview);
   // otherwise data-api + the right path for the mode.
@@ -43,6 +46,7 @@
     single: single,
     mount: (script && script.dataset.mount) || "#npsoy-courses",
     limit: script && script.dataset.limit ? parseInt(script.dataset.limit, 10) : 0,
+    showVenue: showVenue,
     accent: (script && script.dataset.accent) || "#1a3c34",
   };
 
@@ -63,9 +67,10 @@
       ".npsoy-thumb{position:relative;aspect-ratio:2160/764;background:var(--npsoy-accent);overflow:hidden;}",
       ".npsoy-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;border:0;}",
       ".npsoy-thumb-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.6rem;font-weight:300;color:rgba(255,255,255,.85);letter-spacing:.04em;}",
-      ".npsoy-date{position:absolute;left:14px;bottom:14px;display:inline-flex;align-items:baseline;gap:6px;background:rgba(255,255,255,.94);backdrop-filter:saturate(1.2);padding:7px 12px;border-radius:999px;font-size:.74rem;font-weight:600;letter-spacing:.02em;color:var(--npsoy-accent);box-shadow:0 2px 8px rgba(0,0,0,.08);}",
       ".npsoy-body{display:flex;flex-direction:column;flex:1;padding:20px 20px 22px;}",
       ".npsoy-title{font-size:1.12rem;font-weight:600;margin:0 0 8px;letter-spacing:-.01em;line-height:1.3;}",
+      // Date now lives below the title (banner stays clean).
+      ".npsoy-when{display:inline-flex;align-items:center;gap:7px;align-self:flex-start;font-size:.8rem;font-weight:600;letter-spacing:.01em;color:var(--npsoy-accent);margin:0 0 14px;}",
       ".npsoy-summary{font-size:.9rem;font-weight:300;color:#5d655f;margin:0 0 16px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}",
       ".npsoy-meta{margin-top:auto;font-size:.78rem;color:#7a817b;font-weight:400;display:flex;flex-direction:column;gap:3px;}",
       ".npsoy-meta-row{display:flex;align-items:center;gap:7px;}",
@@ -80,7 +85,8 @@
       ".npsoy-single .npsoy-card{flex-direction:column;}",
       ".npsoy-single .npsoy-thumb{aspect-ratio:2160/764;}",
       ".npsoy-single .npsoy-body{padding:30px 32px 32px;gap:2px;}",
-      ".npsoy-single .npsoy-title{font-size:1.55rem;line-height:1.22;margin-bottom:12px;}",
+      ".npsoy-single .npsoy-title{font-size:1.55rem;line-height:1.22;margin-bottom:10px;}",
+      ".npsoy-single .npsoy-when{font-size:.9rem;margin-bottom:16px;}",
       ".npsoy-single .npsoy-summary{font-size:1rem;-webkit-line-clamp:4;margin-bottom:20px;max-width:60ch;}",
       ".npsoy-single .npsoy-meta{font-size:.85rem;gap:5px;}",
       ".npsoy-btn{margin-top:22px;align-self:flex-start;display:inline-flex;align-items:center;gap:9px;background:var(--npsoy-accent);color:#fff;padding:13px 26px;border-radius:999px;font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;transition:transform .2s ease,box-shadow .2s ease,opacity .2s ease;}",
@@ -142,30 +148,23 @@
       });
       thumb.appendChild(img);
     }
-    var dateText = course.dateLabel || course.nextStartLabel;
-    if (dateText) {
-      thumb.appendChild(h("span", { class: "npsoy-date", text: dateText }));
-    }
+    // Banner stays clean — the date moved below the title (buildWhen).
     return thumb;
   }
 
+  // Date line shown below the title (cohort range, falling back to next start).
+  function buildWhen(course) {
+    var dateText = course.dateLabel || course.nextStartLabel;
+    if (!dateText) return null;
+    return h("div", { class: "npsoy-when", text: "🗓 " + dateText });
+  }
+
+  // Venue/address line — only when enabled (data-venue) and present.
   function buildMeta(course) {
     var meta = h("div", { class: "npsoy-meta" });
-    if (course.venue && (course.venue.name || course.venue.branch)) {
+    if (cfg.showVenue && course.venue && (course.venue.name || course.venue.branch)) {
       var place = [course.venue.branch, course.venue.name].filter(Boolean).join(" · ");
       meta.appendChild(h("div", { class: "npsoy-meta-row", text: "📍 " + place }));
-    }
-    if (course.upcomingSessions) {
-      meta.appendChild(
-        h("div", {
-          class: "npsoy-meta-row",
-          text:
-            "🗓 " +
-            course.upcomingSessions +
-            (course.upcomingSessions === 1 ? " session" : " sessions") +
-            " upcoming",
-        }),
-      );
     }
     return meta;
   }
@@ -173,6 +172,7 @@
   function renderCard(course) {
     var body = h("div", { class: "npsoy-body" }, [
       h("h3", { class: "npsoy-title", text: course.title }),
+      buildWhen(course),
       h("p", { class: "npsoy-summary", text: course.summary || "" }),
       buildMeta(course),
       h("span", { class: "npsoy-cta", text: "View & Enrol" }),
@@ -196,6 +196,7 @@
   function renderSingleCourse(course) {
     var body = h("div", { class: "npsoy-body" }, [
       h("h3", { class: "npsoy-title", text: course.title }),
+      buildWhen(course),
       h("p", { class: "npsoy-summary", text: course.summary || "" }),
       buildMeta(course),
       h("a", {

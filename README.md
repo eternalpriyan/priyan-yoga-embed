@@ -199,6 +199,7 @@ Optional `data-*` attributes on the script tag:
 | `data-api` | — | Base URL of the deployed app (appends `/api/courses`) |
 | `data-category` | all | Show only this Oclass category (see below). Comma-separate for several. |
 | `data-course` | — | **Single-course mode.** A title substring (e.g. `200 Hour Yoga Teacher Training`). Renders ONE hero card for the soonest upcoming batch matching it. |
+| `data-venue` | `show` | Show the venue/address line on each card. Set to `hide` to drop it. |
 | `data-mount` | `#npsoy-courses` | Selector of the mount element |
 | `data-limit` | all | Max number of cards (grid mode) |
 | `data-accent` | `#1a3c34` | Brand accent (chips, fallback, hover) |
