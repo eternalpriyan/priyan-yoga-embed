@@ -238,6 +238,12 @@ page that runs in batches:
 > Batches 18–19; the longer `200 Hour Yoga Teacher Training` only matches the
 > singular-spelled one. Hit `/api/courses?q=<keyword>` to preview what matches.
 
+**Ongoing cohorts.** When today falls within a cohort's start–end span
+(Singapore time), the API flags it `ongoing: true` and the embed renders a
+disabled **Ongoing** button (non-clickable) instead of an enrol link — across
+the grid, single hero, and list. Already-started batches that still have
+upcoming sessions therefore can't be mistakenly enrolled into.
+
 ### Weekly-theme hero (`theme.js`)
 
 A separate script renders the current week's theme (cover image + theme name +

@@ -116,6 +116,18 @@
       ".npsoy-row:hover .npsoy-row-cta{background:var(--npsoy-accent);color:#fff;}",
       ".npsoy-row:hover .npsoy-row-cta::after{transform:translateX(3px);}",
       ".npsoy-row-skel{height:62px;border-bottom:1px solid #ecebe6;background:linear-gradient(100deg,#f4f3ef 30%,#fafaf7 50%,#f4f3ef 70%);background-size:200% 100%;animation:npsoy-shimmer 1.3s infinite;}",
+      // Ongoing cohort (today within the dates): enrol disabled, shows 'Ongoing'.
+      ".npsoy-card--off:hover{transform:none;box-shadow:none;border-color:#ecebe6;}",
+      ".npsoy-cta--off{color:#a8aaa3;}",
+      ".npsoy-cta--off::after{display:none;}",
+      ".npsoy-btn--off{background:#e9e8e2;color:#9a9c95;box-shadow:none;cursor:default;}",
+      ".npsoy-btn--off::after{display:none;}",
+      ".npsoy-btn--off:hover{opacity:1;box-shadow:none;}",
+      ".npsoy-row--off{cursor:default;}",
+      ".npsoy-row--off:hover{background:transparent;}",
+      ".npsoy-row-cta--off{border-color:#dcdbd3;color:#a8aaa3;}",
+      ".npsoy-row-cta--off::after{display:none;}",
+      ".npsoy-row:hover .npsoy-row-cta--off{background:transparent;color:#a8aaa3;}",
       "@media(min-width:760px){.npsoy-single .npsoy-card{flex-direction:row;}.npsoy-single .npsoy-thumb{flex:0 0 46%;aspect-ratio:auto;min-height:300px;}.npsoy-single .npsoy-body{flex:1;justify-content:center;padding:38px 40px;}}",
       "@media(max-width:560px){.npsoy-row{flex-wrap:wrap;gap:10px 16px;padding:16px 12px;}.npsoy-row-date{width:100%;order:1;}.npsoy-row-main{flex:1 1 100%;order:2;}.npsoy-row-cta{order:3;}}",
       "@media(max-width:520px){.npsoy-grid{grid-template-columns:1fr;gap:20px;}.npsoy-single .npsoy-body{padding:24px 22px 26px;}.npsoy-single .npsoy-title{font-size:1.32rem;}}",
@@ -209,14 +221,21 @@
   }
 
   function renderCard(course) {
+    var cta = course.ongoing
+      ? h("span", { class: "npsoy-cta npsoy-cta--off", text: "Ongoing" })
+      : h("span", { class: "npsoy-cta", text: "View & Enrol" });
     var body = h("div", { class: "npsoy-body" }, [
       h("h3", { class: "npsoy-title", text: course.title }),
       buildWhen(course),
       h("p", { class: "npsoy-summary", text: course.summary || "" }),
       buildMeta(course),
-      h("span", { class: "npsoy-cta", text: "View & Enrol" }),
+      cta,
     ]);
 
+    // Ongoing cohort isn't enrollable → render a non-clickable card.
+    if (course.ongoing) {
+      return h("div", { class: "npsoy-card npsoy-card--off" }, [buildThumb(course), body]);
+    }
     return h(
       "a",
       {
@@ -233,18 +252,21 @@
   // Single-course hero: a non-anchor card with a prominent enrol button (so we
   // don't nest an <a> inside an <a>).
   function renderSingleCourse(course) {
+    var btn = course.ongoing
+      ? h("span", { class: "npsoy-btn npsoy-btn--off", text: "Ongoing" })
+      : h("a", {
+          class: "npsoy-btn",
+          href: course.enrolUrl || "#",
+          target: "_blank",
+          rel: "noopener",
+          text: "View & Enrol",
+        });
     var body = h("div", { class: "npsoy-body" }, [
       h("h3", { class: "npsoy-title", text: course.title }),
       buildWhen(course),
       h("p", { class: "npsoy-summary", text: course.summary || "" }),
       buildMeta(course),
-      h("a", {
-        class: "npsoy-btn",
-        href: course.enrolUrl || "#",
-        target: "_blank",
-        rel: "noopener",
-        text: "View & Enrol",
-      }),
+      btn,
     ]);
     return h("div", { class: "npsoy-card" }, [buildThumb(course), body]);
   }
@@ -288,6 +310,10 @@
     }
     var main = h("div", { class: "npsoy-row-main" }, mainKids);
 
+    if (course.ongoing) {
+      var offCta = h("span", { class: "npsoy-row-cta npsoy-row-cta--off", text: "Ongoing" });
+      return h("div", { class: "npsoy-row npsoy-row--off" }, [date, main, offCta]);
+    }
     return h(
       "a",
       {

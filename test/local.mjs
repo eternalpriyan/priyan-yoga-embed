@@ -33,7 +33,7 @@ section("SECURITY — allowlist guard");
 const ALLOWED = new Set([
   "id", "code", "title", "summary", "descriptionHtml", "coverImage", "color",
   "durationMin", "creditsRequired", "categories", "upcomingSessions",
-  "startDate", "endDate", "dateLabel", "nextStart", "nextStartLabel",
+  "startDate", "endDate", "dateLabel", "ongoing", "nextStart", "nextStartLabel",
   "venue", "onlineEnrollment", "enrolUrl",
 ]);
 let leaks = 0;

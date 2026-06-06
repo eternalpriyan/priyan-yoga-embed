@@ -79,6 +79,7 @@ export interface PublicCourse {
   startDate: string | null; // YYYY-MM-DD
   endDate: string | null; // YYYY-MM-DD
   dateLabel: string | null; // smart range, e.g. "4 Apr – 14 Jun 2026"
+  ongoing: boolean; // today is within [startDate, endDate] (SG time) — enrol closed
   // Next actual upcoming session (used for sorting + the enrol link):
   nextStart: string | null; // ISO 8601
   nextStartLabel: string | null; // e.g. "Sat, 6 Jun 2026"
@@ -118,6 +119,19 @@ function fmtDateTime(iso: string): string {
     year: "numeric",
     timeZone: "Asia/Singapore",
   }).format(new Date(iso));
+}
+
+// Today's date as plain YYYY-MM-DD in Singapore time (the cohort dates' tz).
+function sgToday(now: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Singapore" }).format(now);
+}
+
+// Is today within the cohort span? Plain YYYY-MM-DD strings compare
+// lexicographically, which matches chronological order for ISO dates.
+function isOngoing(startDate: string | null, endDate: string | null, now: Date): boolean {
+  if (!startDate || !endDate) return false;
+  const today = sgToday(now);
+  return startDate <= today && today <= endDate;
 }
 
 // Parse a plain YYYY-MM-DD into parts (no Date object → no timezone drift).
@@ -161,6 +175,7 @@ export function toPublicCourse(
   course: RawCourse,
   next: NextSession | null,
   enrolBase: string,
+  now: Date = new Date(),
 ): PublicCourse {
   const v = next?.venue;
   const plain = course.description ? stripHtml(course.description) : "";
@@ -183,6 +198,7 @@ export function toPublicCourse(
     startDate,
     endDate,
     dateLabel: rangeLabel(startDate, endDate),
+    ongoing: isOngoing(startDate, endDate, now),
     nextStart: next?.startDatetime ?? null,
     nextStartLabel: next ? fmtDateTime(next.startDatetime) : null,
     venue: v
@@ -278,7 +294,7 @@ async function enrich(
       fetchNextSession(token, c.id, now).catch(() => null /* don't fail the whole set */),
     ),
   );
-  return raw.map((c, i) => toPublicCourse(c, sessions[i] ?? null, enrolBase)).sort(bySoonest);
+  return raw.map((c, i) => toPublicCourse(c, sessions[i] ?? null, enrolBase, now)).sort(bySoonest);
 }
 
 // Fetch courses -> keep published/live/with-upcoming -> optional category
