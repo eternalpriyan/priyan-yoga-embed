@@ -21,6 +21,7 @@
  *                  cohort chronologically (no thumbnails) — a schedule view.
  *   data-layout    With data-course: "hero" (default) or "list".
  *   data-venue     Show the venue/address line? "show" (default) or "hide".
+ *   data-bg        Background colour for the embed (default: transparent).
  *   data-accent    Brand accent colour (default "#1a3c34").
  */
 (function () {
@@ -54,6 +55,7 @@
     mount: (script && script.dataset.mount) || "#npsoy-courses",
     limit: script && script.dataset.limit ? parseInt(script.dataset.limit, 10) : 0,
     showVenue: showVenue,
+    bg: (script && script.dataset.bg) || "",
     accent: (script && script.dataset.accent) || "#1a3c34",
   };
 
@@ -367,6 +369,7 @@
     }
     injectStyles();
     root.classList.add("npsoy-courses");
+    if (cfg.bg) root.style.background = cfg.bg; // per-instance, e.g. data-bg="#fff"
     renderSkeleton(root);
 
     fetch(cfg.endpoint, { headers: { Accept: "application/json" } })

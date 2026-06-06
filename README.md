@@ -201,6 +201,7 @@ Optional `data-*` attributes on the script tag:
 | `data-course` | — | **Keyword mode.** A title substring (e.g. `200 Hour`). By default renders ONE hero card for the soonest upcoming batch matching it. |
 | `data-layout` | `hero` | With `data-course`: `hero` (single card) or `list` (every matching upcoming cohort, chronological, no thumbnails). |
 | `data-venue` | `show` | Show the venue/address line on each card/row. Set to `hide` to drop it. |
+| `data-bg` | transparent | Background colour for the embed (e.g. `#fff`). |
 | `data-mount` | `#npsoy-courses` | Selector of the mount element |
 | `data-limit` | all | Max number of cards (grid mode) |
 | `data-accent` | `#1a3c34` | Brand accent (chips, fallback, hover) |
