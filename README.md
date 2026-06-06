@@ -198,8 +198,9 @@ Optional `data-*` attributes on the script tag:
 |---|---|---|
 | `data-api` | — | Base URL of the deployed app (appends `/api/courses`) |
 | `data-category` | all | Show only this Oclass category (see below). Comma-separate for several. |
-| `data-course` | — | **Single-course mode.** A title substring (e.g. `200 Hour Yoga Teacher Training`). Renders ONE hero card for the soonest upcoming batch matching it. |
-| `data-venue` | `show` | Show the venue/address line on each card. Set to `hide` to drop it. |
+| `data-course` | — | **Keyword mode.** A title substring (e.g. `200 Hour`). By default renders ONE hero card for the soonest upcoming batch matching it. |
+| `data-layout` | `hero` | With `data-course`: `hero` (single card) or `list` (every matching upcoming cohort, chronological, no thumbnails). |
+| `data-venue` | `show` | Show the venue/address line on each card/row. Set to `hide` to drop it. |
 | `data-mount` | `#npsoy-courses` | Selector of the mount element |
 | `data-limit` | all | Max number of cards (grid mode) |
 | `data-accent` | `#1a3c34` | Brand accent (chips, fallback, hover) |
@@ -217,6 +218,25 @@ id/code don't):
         data-api="https://priyan-yoga-embed.vercel.app"
         data-course="200 Hour Yoga Teacher Training"></script>
 ```
+
+### A schedule of every matching cohort (`data-layout="list"`)
+
+Same keyword, but list **all** upcoming cohorts chronologically as a compact
+dated list (no thumbnails) with an enrol button per row — ideal for a course
+page that runs in batches:
+
+```html
+<div id="npsoy-courses"></div>
+<script src="https://priyan-yoga-embed.vercel.app/embed.js"
+        data-api="https://priyan-yoga-embed.vercel.app"
+        data-course="200 Hour"
+        data-layout="list"></script>
+```
+
+> **Keyword tip:** the match is a case-insensitive title substring, so keep it
+> short and distinctive. `200 Hour` catches Batch 17 *and* the "200 Hour**s**"
+> Batches 18–19; the longer `200 Hour Yoga Teacher Training` only matches the
+> singular-spelled one. Hit `/api/courses?q=<keyword>` to preview what matches.
 
 ### Weekly-theme hero (`theme.js`)
 

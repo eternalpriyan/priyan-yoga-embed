@@ -289,13 +289,20 @@ export async function getPublicCourses(
   now: Date,
   enrolBase: string,
   categoryFilter: string[] = [],
+  query = "",
 ): Promise<PublicCourse[]> {
   const raw = await fetchRawCourses(token);
-  const live = raw.filter((c) => isLive(c) && matchesCategory(c, categoryFilter));
+  const q = query.trim().toLowerCase();
+  const live = raw.filter(
+    (c) =>
+      isLive(c) &&
+      matchesCategory(c, categoryFilter) &&
+      (!q || (c.title ?? "").toLowerCase().includes(q)),
+  );
   return enrich(live, token, now, enrolBase);
 }
 
-// Find the single soonest-upcoming course whose title contains `query`
+// The single soonest-upcoming course whose title contains `query`
 // (case-insensitive substring). Stable across batches: the id and code change
 // each cohort, but the title does not — so `data-course="200 Hour Yoga Teacher
 // Training"` keeps resolving to the next batch as new ones are scheduled.
@@ -307,16 +314,7 @@ export async function getPublicCourseByQuery(
   query: string,
   categoryFilter: string[] = [],
 ): Promise<PublicCourse | null> {
-  const q = query.trim().toLowerCase();
-  if (!q) return null;
-  const raw = await fetchRawCourses(token);
-  const matches = raw.filter(
-    (c) =>
-      isLive(c) &&
-      matchesCategory(c, categoryFilter) &&
-      (c.title ?? "").toLowerCase().includes(q),
-  );
-  if (!matches.length) return null;
-  const courses = await enrich(matches, token, now, enrolBase);
-  return courses[0] ?? null;
+  if (!query.trim()) return null;
+  const matches = await getPublicCourses(token, now, enrolBase, categoryFilter, query);
+  return matches[0] ?? null; // already sorted soonest-first
 }

@@ -42,7 +42,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const courses = await getPublicCourses(token, new Date(), enrolBase, categoryFilter);
+    // ?q=200 Hour Yoga Teacher Training  (title substring; lists every match)
+    const rawQ = req.query.q;
+    const query = ((Array.isArray(rawQ) ? rawQ[0] : rawQ) ?? "").trim();
+
+    const courses = await getPublicCourses(token, new Date(), enrolBase, categoryFilter, query);
 
     // Edge-cache 15 min, serve stale up to 1h while revalidating. Cache key
     // includes the query string, so each category caches independently.
@@ -50,6 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     res.status(200).json({
       updatedAt: new Date().toISOString(),
       category: categoryFilter.length ? categoryFilter : null,
+      query: query || null,
       count: courses.length,
       courses,
     });

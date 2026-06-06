@@ -14,9 +14,12 @@
  *   data-limit     Max number of cards to show (default: all).
  *   data-category  Show only this Oclass category (e.g. "Teacher Training").
  *                  Comma-separate for several. Omit to show all categories.
- *   data-course    Single-course mode: a title substring (e.g. "200 Hour Yoga
- *                  Teacher Training"). Renders ONE hero card for the soonest
- *                  upcoming batch matching it — survives new cohort ids/codes.
+ *   data-course    Keyword mode: a title substring (e.g. "200 Hour Yoga
+ *                  Teacher Training"). By default renders ONE hero card for the
+ *                  soonest upcoming batch matching it (survives new cohort ids).
+ *                  With data-layout="list" it lists EVERY matching upcoming
+ *                  cohort chronologically (no thumbnails) — a schedule view.
+ *   data-layout    With data-course: "hero" (default) or "list".
  *   data-venue     Show the venue/address line? "show" (default) or "hide".
  *   data-accent    Brand accent colour (default "#1a3c34").
  */
@@ -25,17 +28,20 @@
 
   var script = document.currentScript;
   var courseQuery = script && script.dataset.course ? script.dataset.course.trim() : "";
-  var single = !!courseQuery; // single-course hero vs full grid
+  var layout = script && script.dataset.layout ? script.dataset.layout.trim().toLowerCase() : "";
+  var list = !!courseQuery && layout === "list"; // chronological schedule list
+  var single = !!courseQuery && !list; // single-course hero
   var category = script && script.dataset.category ? script.dataset.category.trim() : "";
   var venueAttr = script && script.dataset.venue ? script.dataset.venue.trim().toLowerCase() : "";
   var showVenue = !(venueAttr === "hide" || venueAttr === "off" || venueAttr === "false" || venueAttr === "no");
 
   // Pick the endpoint: data-endpoint overrides everything (local preview);
-  // otherwise data-api + the right path for the mode.
+  // otherwise data-api + the right path. Single hero hits /api/course (one
+  // result); list and grid hit /api/courses (many), the former with ?q=.
   var apiBase = script && script.dataset.api ? script.dataset.api.replace(/\/$/, "") : "";
   var base = (script && script.dataset.endpoint) || apiBase + (single ? "/api/course" : "/api/courses");
   var params = [];
-  if (single) params.push("q=" + encodeURIComponent(courseQuery));
+  if (courseQuery) params.push("q=" + encodeURIComponent(courseQuery));
   if (category) params.push("category=" + encodeURIComponent(category));
   var endpoint = params.length
     ? base + (base.indexOf("?") === -1 ? "?" : "&") + params.join("&")
@@ -44,6 +50,7 @@
   var cfg = {
     endpoint: endpoint,
     single: single,
+    list: list,
     mount: (script && script.dataset.mount) || "#npsoy-courses",
     limit: script && script.dataset.limit ? parseInt(script.dataset.limit, 10) : 0,
     showVenue: showVenue,
@@ -95,7 +102,22 @@
       ".npsoy-btn::after{content:'\\2192';transition:transform .2s ease;}",
       ".npsoy-btn:hover{opacity:.92;box-shadow:0 10px 26px rgba(26,60,52,.22);}",
       ".npsoy-btn:hover::after{transform:translateX(4px);}",
+      // Schedule list: compact dated rows, no thumbnails, chronological.
+      ".npsoy-list{display:flex;flex-direction:column;border-top:1px solid #ecebe6;}",
+      ".npsoy-row{display:flex;align-items:center;gap:20px;padding:18px 14px;border-bottom:1px solid #ecebe6;text-decoration:none;color:inherit;transition:background .18s ease;}",
+      ".npsoy-row:hover{background:#f7f6f2;}",
+      ".npsoy-row:focus-visible{outline:2px solid var(--npsoy-accent);outline-offset:-2px;}",
+      ".npsoy-row-date{flex:0 0 auto;width:188px;display:inline-flex;align-items:center;gap:8px;font-size:.9rem;font-weight:600;color:var(--npsoy-accent);}",
+      ".npsoy-row-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px;}",
+      ".npsoy-row-title{font-size:.98rem;font-weight:600;letter-spacing:-.01em;line-height:1.3;}",
+      ".npsoy-row-meta{display:inline-flex;align-items:center;gap:7px;font-size:.8rem;color:#7a817b;}",
+      ".npsoy-row-cta{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--npsoy-accent);color:var(--npsoy-accent);padding:9px 18px;font-size:.74rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;transition:background .18s ease,color .18s ease;}",
+      ".npsoy-row-cta::after{content:'\\2192';transition:transform .2s ease;}",
+      ".npsoy-row:hover .npsoy-row-cta{background:var(--npsoy-accent);color:#fff;}",
+      ".npsoy-row:hover .npsoy-row-cta::after{transform:translateX(3px);}",
+      ".npsoy-row-skel{height:62px;border-bottom:1px solid #ecebe6;background:linear-gradient(100deg,#f4f3ef 30%,#fafaf7 50%,#f4f3ef 70%);background-size:200% 100%;animation:npsoy-shimmer 1.3s infinite;}",
       "@media(min-width:760px){.npsoy-single .npsoy-card{flex-direction:row;}.npsoy-single .npsoy-thumb{flex:0 0 46%;aspect-ratio:auto;min-height:300px;}.npsoy-single .npsoy-body{flex:1;justify-content:center;padding:38px 40px;}}",
+      "@media(max-width:560px){.npsoy-row{flex-wrap:wrap;gap:10px 16px;padding:16px 12px;}.npsoy-row-date{width:100%;order:1;}.npsoy-row-main{flex:1 1 100%;order:2;}.npsoy-row-cta{order:3;}}",
       "@media(max-width:520px){.npsoy-grid{grid-template-columns:1fr;gap:20px;}.npsoy-single .npsoy-body{padding:24px 22px 26px;}.npsoy-single .npsoy-title{font-size:1.32rem;}}",
     ].join("\n");
     var el = document.createElement("style");
@@ -252,9 +274,58 @@
     root.appendChild(h("div", { class: "npsoy-single" }, [renderSingleCourse(course)]));
   }
 
+  // One row of the schedule list: date · title/venue · enrol button.
+  function renderRow(course) {
+    var date = h("div", { class: "npsoy-row-date" }, [
+      icon("calendar"),
+      h("span", { text: course.dateLabel || course.nextStartLabel || "Dates TBC" }),
+    ]);
+
+    var mainKids = [h("div", { class: "npsoy-row-title", text: course.title })];
+    if (cfg.showVenue && course.venue && (course.venue.name || course.venue.branch)) {
+      var place = [course.venue.branch, course.venue.name].filter(Boolean).join(" · ");
+      mainKids.push(h("div", { class: "npsoy-row-meta" }, [icon("pin"), h("span", { text: place })]));
+    }
+    var main = h("div", { class: "npsoy-row-main" }, mainKids);
+
+    return h(
+      "a",
+      {
+        class: "npsoy-row",
+        href: course.enrolUrl || "#",
+        target: "_blank",
+        rel: "noopener",
+        "aria-label": "Enrol: " + course.title,
+      },
+      [date, main, h("span", { class: "npsoy-row-cta", text: "Enrol" })],
+    );
+  }
+
+  function renderList(root, courses) {
+    root.textContent = "";
+    if (!courses.length) {
+      root.appendChild(
+        h("div", { class: "npsoy-state", text: "No upcoming dates right now — check back soon." }),
+      );
+      return;
+    }
+    var rows = cfg.limit > 0 ? courses.slice(0, cfg.limit) : courses;
+    var box = h("div", { class: "npsoy-list" });
+    rows.forEach(function (c) {
+      box.appendChild(renderRow(c));
+    });
+    root.appendChild(box);
+  }
+
   function renderSkeleton(root) {
     if (cfg.single) {
       root.appendChild(h("div", { class: "npsoy-single" }, [h("div", { class: "npsoy-skel" })]));
+      return;
+    }
+    if (cfg.list) {
+      var box = h("div", { class: "npsoy-list" });
+      for (var j = 0; j < 4; j++) box.appendChild(h("div", { class: "npsoy-row-skel" }));
+      root.appendChild(box);
       return;
     }
     var grid = h("div", { class: "npsoy-grid" });
@@ -279,6 +350,7 @@
       })
       .then(function (data) {
         if (cfg.single) renderSingle(root, (data && data.course) || null);
+        else if (cfg.list) renderList(root, (data && data.courses) || []);
         else render(root, (data && data.courses) || []);
       })
       .catch(function (err) {
