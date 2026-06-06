@@ -61,7 +61,7 @@
         ";font-family:'Raleway',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#26302c;line-height:1.55;box-sizing:border-box;}",
       ".npsoy-courses *,.npsoy-courses *::before,.npsoy-courses *::after{box-sizing:inherit;}",
       ".npsoy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:28px;margin:0;padding:0;list-style:none;}",
-      ".npsoy-card{position:relative;display:flex;flex-direction:column;background:#fff;border:1px solid #ecebe6;border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease;}",
+      ".npsoy-card{position:relative;display:flex;flex-direction:column;background:#fff;border:1px solid #ecebe6;overflow:hidden;text-decoration:none;color:inherit;transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease;}",
       ".npsoy-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(26,60,52,.13);border-color:#dcdbd3;}",
       ".npsoy-card:focus-visible{outline:2px solid var(--npsoy-accent);outline-offset:3px;}",
       ".npsoy-thumb{position:relative;aspect-ratio:2160/764;background:var(--npsoy-accent);overflow:hidden;}",
@@ -71,6 +71,8 @@
       ".npsoy-title{font-size:1.12rem;font-weight:600;margin:0 0 8px;letter-spacing:-.01em;line-height:1.3;}",
       // Date now lives below the title (banner stays clean).
       ".npsoy-when{display:inline-flex;align-items:center;gap:7px;align-self:flex-start;font-size:.8rem;font-weight:600;letter-spacing:.01em;color:var(--npsoy-accent);margin:0 0 14px;}",
+      // Line-drawn inline icons (inherit text colour via currentColor).
+      ".npsoy-ico{width:1.05em;height:1.05em;flex:none;display:block;stroke:currentColor;}",
       ".npsoy-summary{font-size:.9rem;font-weight:300;color:#5d655f;margin:0 0 16px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}",
       ".npsoy-meta{margin-top:auto;font-size:.78rem;color:#7a817b;font-weight:400;display:flex;flex-direction:column;gap:3px;}",
       ".npsoy-meta-row{display:flex;align-items:center;gap:7px;}",
@@ -78,7 +80,7 @@
       ".npsoy-cta::after{content:'\\2192';transition:transform .2s ease;}",
       ".npsoy-card:hover .npsoy-cta::after{transform:translateX(4px);}",
       ".npsoy-state{padding:48px 16px;text-align:center;color:#7a817b;font-family:'Raleway',sans-serif;font-weight:300;}",
-      ".npsoy-skel{background:linear-gradient(100deg,#f1f0eb 30%,#f8f7f3 50%,#f1f0eb 70%);background-size:200% 100%;animation:npsoy-shimmer 1.3s infinite;border-radius:14px;height:360px;}",
+      ".npsoy-skel{background:linear-gradient(100deg,#f1f0eb 30%,#f8f7f3 50%,#f1f0eb 70%);background-size:200% 100%;animation:npsoy-shimmer 1.3s infinite;height:360px;}",
       "@keyframes npsoy-shimmer{to{background-position:-200% 0;}}",
       // Single-course hero: one full-width card, banner over a roomier body.
       ".npsoy-single{display:block;}",
@@ -89,7 +91,7 @@
       ".npsoy-single .npsoy-when{font-size:.9rem;margin-bottom:16px;}",
       ".npsoy-single .npsoy-summary{font-size:1rem;-webkit-line-clamp:4;margin-bottom:20px;max-width:60ch;}",
       ".npsoy-single .npsoy-meta{font-size:.85rem;gap:5px;}",
-      ".npsoy-btn{margin-top:22px;align-self:flex-start;display:inline-flex;align-items:center;gap:9px;background:var(--npsoy-accent);color:#fff;padding:13px 26px;border-radius:999px;font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;transition:transform .2s ease,box-shadow .2s ease,opacity .2s ease;}",
+      ".npsoy-btn{margin-top:22px;align-self:flex-start;display:inline-flex;align-items:center;gap:9px;background:var(--npsoy-accent);color:#fff;padding:13px 26px;font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;transition:transform .2s ease,box-shadow .2s ease,opacity .2s ease;}",
       ".npsoy-btn::after{content:'\\2192';transition:transform .2s ease;}",
       ".npsoy-btn:hover{opacity:.92;box-shadow:0 10px 26px rgba(26,60,52,.22);}",
       ".npsoy-btn:hover::after{transform:translateX(4px);}",
@@ -124,6 +126,21 @@
     });
   }
 
+  // Line-drawn inline icons. Square corners (stroke-linejoin:miter) to match the
+  // sharp-cornered cards. stroke:currentColor lets them inherit the text colour.
+  var ICONS = {
+    calendar:
+      '<svg class="npsoy-ico" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="miter" aria-hidden="true"><rect x="3" y="4.5" width="18" height="17"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/></svg>',
+    pin:
+      '<svg class="npsoy-ico" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="2.6"/></svg>',
+  };
+
+  function icon(name) {
+    var tmp = document.createElement("span");
+    tmp.innerHTML = ICONS[name] || "";
+    return tmp.firstChild; // the <svg> element
+  }
+
   function buildThumb(course) {
     var thumb = h("div", {
       class: "npsoy-thumb",
@@ -156,7 +173,7 @@
   function buildWhen(course) {
     var dateText = course.dateLabel || course.nextStartLabel;
     if (!dateText) return null;
-    return h("div", { class: "npsoy-when", text: "🗓 " + dateText });
+    return h("div", { class: "npsoy-when" }, [icon("calendar"), h("span", { text: dateText })]);
   }
 
   // Venue/address line — only when enabled (data-venue) and present.
@@ -164,7 +181,7 @@
     var meta = h("div", { class: "npsoy-meta" });
     if (cfg.showVenue && course.venue && (course.venue.name || course.venue.branch)) {
       var place = [course.venue.branch, course.venue.name].filter(Boolean).join(" · ");
-      meta.appendChild(h("div", { class: "npsoy-meta-row", text: "📍 " + place }));
+      meta.appendChild(h("div", { class: "npsoy-meta-row" }, [icon("pin"), h("span", { text: place })]));
     }
     return meta;
   }

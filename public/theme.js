@@ -43,7 +43,7 @@
         cfg.accent +
         ";font-family:'Raleway',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;box-sizing:border-box;}",
       ".npsoy-theme *,.npsoy-theme *::before,.npsoy-theme *::after{box-sizing:inherit;}",
-      ".npsoy-hero{position:relative;min-height:440px;display:flex;align-items:flex-end;border-radius:18px;overflow:hidden;background:var(--npsoy-accent);isolation:isolate;}",
+      ".npsoy-hero{position:relative;min-height:440px;display:flex;align-items:flex-end;overflow:hidden;background:var(--npsoy-accent);isolation:isolate;}",
       ".npsoy-hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;border:0;z-index:-2;}",
       // Gradient floor for legible text over any image.
       ".npsoy-hero::after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(to top,rgba(15,28,24,.82) 0%,rgba(15,28,24,.45) 38%,rgba(15,28,24,.06) 70%,rgba(15,28,24,0) 100%);}",
@@ -52,11 +52,11 @@
       ".npsoy-hero-title{font-size:2.6rem;font-weight:700;line-height:1.08;letter-spacing:-.015em;margin:0 0 12px;text-shadow:0 2px 18px rgba(0,0,0,.28);}",
       ".npsoy-hero-cat{font-size:.84rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.8);margin:0 0 14px;}",
       ".npsoy-hero-summary{font-size:1.02rem;font-weight:300;line-height:1.6;color:rgba(255,255,255,.94);margin:0;max-width:60ch;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}",
-      ".npsoy-hero-cta{margin-top:24px;display:inline-flex;align-items:center;gap:9px;background:#fff;color:var(--npsoy-accent);padding:13px 26px;border-radius:999px;font-size:.8rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;transition:transform .2s ease,box-shadow .2s ease;}",
+      ".npsoy-hero-cta{margin-top:24px;display:inline-flex;align-items:center;gap:9px;background:#fff;color:var(--npsoy-accent);padding:13px 26px;font-size:.8rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;transition:transform .2s ease,box-shadow .2s ease;}",
       ".npsoy-hero-cta::after{content:'\\2192';transition:transform .2s ease;}",
       ".npsoy-hero-cta:hover{box-shadow:0 12px 30px rgba(0,0,0,.28);}",
       ".npsoy-hero-cta:hover::after{transform:translateX(4px);}",
-      ".npsoy-theme-skel{min-height:440px;border-radius:18px;background:linear-gradient(100deg,#e9e8e2 30%,#f3f2ee 50%,#e9e8e2 70%);background-size:200% 100%;animation:npsoy-theme-shimmer 1.3s infinite;}",
+      ".npsoy-theme-skel{min-height:440px;background:linear-gradient(100deg,#e9e8e2 30%,#f3f2ee 50%,#e9e8e2 70%);background-size:200% 100%;animation:npsoy-theme-shimmer 1.3s infinite;}",
       "@keyframes npsoy-theme-shimmer{to{background-position:-200% 0;}}",
       "@media(max-width:600px){.npsoy-hero{min-height:380px;}.npsoy-hero-content{padding:28px 24px 30px;}.npsoy-hero-title{font-size:1.9rem;}.npsoy-hero-summary{font-size:.94rem;-webkit-line-clamp:4;}}",
     ].join("\n");
