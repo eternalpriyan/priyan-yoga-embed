@@ -51,12 +51,17 @@ console.log(leaks === 0 ? "  ✓ no unexpected fields" : `  ✗ ${leaks} leak(s)
 section("SAMPLE — one full public object");
 console.log(JSON.stringify(courses[0], null, 2));
 
-// ---- 2. Live: end-to-end fetch (only if token present) ------------------
-const token = process.env.OCLASS_API_TOKEN || process.env.OCLASS_TOKEN;
-if (token) {
+// ---- 2. Live: end-to-end fetch (only if Oclass auth is configured) ------
+// Auth resolves inside lib/oclass: login via OCLASS_EMAIL+OCLASS_PASSWORD, or a
+// static OCLASS_API_TOKEN fallback.
+const hasAuth =
+  (process.env.OCLASS_EMAIL && process.env.OCLASS_PASSWORD) ||
+  process.env.OCLASS_API_TOKEN ||
+  process.env.OCLASS_TOKEN;
+if (hasAuth) {
   section("LIVE — getPublicCourses() against api.oclass.app (real next-session dates)");
   try {
-    const live = await getPublicCourses(token, now, ENROL);
+    const live = await getPublicCourses(now, ENROL);
     console.log(`  ✓ live fetch ok — ${live.length} courses\n`);
     for (const c of live) {
       console.log(
@@ -73,7 +78,7 @@ if (token) {
 
     // Category filter
     section("LIVE — category filter: 'Teacher Training'");
-    const tt = await getPublicCourses(token, now, ENROL, ["Teacher Training"]);
+    const tt = await getPublicCourses(now, ENROL, ["Teacher Training"]);
     console.log(`  ${tt.length} course(s):`);
     for (const c of tt) console.log(`    • ${c.title} [${c.categories.map((x) => x.name).join(", ")}]`);
     const wrong = tt.filter((c) => !c.categories.some((x) => x.name === "Teacher Training"));
@@ -82,7 +87,7 @@ if (token) {
     // Single-course lookup by title substring (the /api/course path)
     section("LIVE — getPublicCourseByQuery() single-course lookup");
     const oneQ = "200 Hour Yoga Teacher Training";
-    const one = await getPublicCourseByQuery(token, now, ENROL, oneQ);
+    const one = await getPublicCourseByQuery(now, ENROL, oneQ);
     console.log(`  q="${oneQ}" -> ${one ? `${one.title} | ${one.dateLabel} | ${one.enrolUrl}` : "null"}`);
     if (one && !one.title.toLowerCase().includes(oneQ.toLowerCase())) {
       console.log("  ✗ result title does not contain the query");
@@ -90,14 +95,14 @@ if (token) {
     } else if (one) {
       console.log("  ✓ single result matches the query");
     }
-    const none = await getPublicCourseByQuery(token, now, ENROL, "zzz-no-such-course");
+    const none = await getPublicCourseByQuery(now, ENROL, "zzz-no-such-course");
     console.log(none === null ? "  ✓ no-match returns null" : "  ✗ expected null for no match");
   } catch (e) {
     console.log(`  ✗ live fetch failed: ${e.message}`);
     process.exitCode = 1;
   }
 } else {
-  section("LIVE — skipped (no OCLASS_API_TOKEN in env)");
+  section("LIVE — skipped (no Oclass auth in env: set OCLASS_EMAIL+OCLASS_PASSWORD)");
 }
 
 // ---- 3. Weekly theme: allowlist guard + live fetch ----------------------

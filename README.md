@@ -143,11 +143,11 @@ cd public && python3 -m http.server 8799   # → http://127.0.0.1:8799
 vercel dev        # then set data-api="http://localhost:3000" in index.html
 ```
 
-For the live-fetch test, the token is read from the environment:
+For the live-fetch test, Oclass auth is read from the environment (the lib logs
+in on demand):
 
 ```bash
-set -a; source ~/vault/.env; set +a
-export OCLASS_API_TOKEN
+set -a; source ~/vault/.env; set +a   # OCLASS_EMAIL + OCLASS_PASSWORD (+ OCLASS_COMPANY)
 npm test
 ```
 
@@ -162,10 +162,22 @@ Environment variables (Vercel → Project → Settings → Environment Variables
 
 | Key | Value |
 |---|---|
-| `OCLASS_API_TOKEN` | the full-access Oclass token — server-side only, never returned to the browser |
+| `OCLASS_EMAIL` | login email of the dedicated Oclass account used by the embed (server-side only) |
+| `OCLASS_PASSWORD` | its password — the server logs in to mint a token on demand (see auth note) |
+| `OCLASS_COMPANY` | `priyan-yoga` (defaults to this if unset) |
 | `NOTION_API_KEY` | Notion integration token for the weekly-theme hero (`/api/weekly-theme`). Server-side only. |
 | `ALLOW_ORIGIN` | `*` (see note below) |
 | `ENROLL_BASE` | `https://clients.oclass.app/priyan-yoga` |
+
+**Auth is login-based, not a stored token.** Oclass invalidates a token
+whenever any system sharing its credentials logs in, so a persisted
+`OCLASS_API_TOKEN` goes stale unpredictably (→ 502s). Instead, `lib/oclass.ts`
+logs in with `OCLASS_EMAIL`/`OCLASS_PASSWORD` to mint a token, **keeps using it
+until a request 401s, then re-logs-in once and retries** — self-healing, no
+cron. Use a *dedicated* Oclass account that nothing logs into interactively, so
+its token is never rotated out from under the embed. (A static
+`OCLASS_API_TOKEN` is still honoured as a fallback when no credentials are set,
+e.g. some local runs.)
 
 Smoke-test after a deploy:
 

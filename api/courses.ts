@@ -26,8 +26,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  const token = process.env.OCLASS_API_TOKEN;
-  if (!token) {
+  // Auth (login via OCLASS_EMAIL+OCLASS_PASSWORD, or a static OCLASS_API_TOKEN)
+  // is resolved inside lib/oclass on demand.
+  const configured =
+    (process.env.OCLASS_EMAIL && process.env.OCLASS_PASSWORD) || process.env.OCLASS_API_TOKEN;
+  if (!configured) {
     res.status(500).json({ error: "Server not configured" });
     return;
   }
@@ -46,7 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const rawQ = req.query.q;
     const query = ((Array.isArray(rawQ) ? rawQ[0] : rawQ) ?? "").trim();
 
-    const courses = await getPublicCourses(token, new Date(), enrolBase, categoryFilter, query);
+    const courses = await getPublicCourses(new Date(), enrolBase, categoryFilter, query);
 
     // Edge-cache 15 min, serve stale up to 1h while revalidating. Cache key
     // includes the query string, so each category caches independently.

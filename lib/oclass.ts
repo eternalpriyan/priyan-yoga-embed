@@ -226,22 +226,68 @@ export function matchesCategory(course: RawCourse, filter: string[]): boolean {
   );
 }
 
+// ---- Auth: login-based token, used until it 401s ---------------------------
+//
+// Oclass invalidates a token whenever ANY system sharing the credentials logs
+// in, so a persisted token goes stale unpredictably. Instead of storing a
+// token, we log in with email+password to mint one, keep using it until a
+// request actually 401s, then re-login once and retry. No timer — a warm
+// instance reuses its token indefinitely; a 401 (rotation/expiry) self-heals.
+//
+// Falls back to a static OCLASS_API_TOKEN when no credentials are configured
+// (e.g. local runs without the login account).
+
+let cachedToken: string | null = null;
+
+async function login(): Promise<string> {
+  const email = process.env.OCLASS_EMAIL;
+  const password = process.env.OCLASS_PASSWORD;
+
+  if (!email || !password) {
+    const fallback = process.env.OCLASS_API_TOKEN;
+    if (fallback) return (cachedToken = fallback);
+    throw new Error("Oclass auth not configured (need OCLASS_EMAIL+OCLASS_PASSWORD or OCLASS_API_TOKEN)");
+  }
+
+  const res = await fetch(`${OCLASS_BASE}/com/auth/login/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, company: process.env.OCLASS_COMPANY || "priyan-yoga" }),
+  });
+  if (!res.ok) {
+    throw new Error(`Oclass login ${res.status}: ${await res.text().catch(() => res.statusText)}`);
+  }
+  const data = (await res.json()) as { key?: string };
+  if (!data.key) throw new Error("Oclass login: no key in response");
+  return (cachedToken = data.key);
+}
+
+async function token(forceRefresh = false): Promise<string> {
+  if (!forceRefresh && cachedToken) return cachedToken;
+  return login();
+}
+
 // ---- Oclass fetches --------------------------------------------------------
 
-async function oclassGet<T>(path: string, token: string): Promise<T> {
-  const res = await fetch(`${OCLASS_BASE}${path}`, {
-    headers: { Authorization: `Token ${token}` },
+async function oclassGet<T>(path: string): Promise<T> {
+  let res = await fetch(`${OCLASS_BASE}${path}`, {
+    headers: { Authorization: `Token ${await token()}` },
   });
+  // Stale token (another system logged in / it expired) → re-login once, retry.
+  if (res.status === 401) {
+    res = await fetch(`${OCLASS_BASE}${path}`, {
+      headers: { Authorization: `Token ${await token(true)}` },
+    });
+  }
   if (!res.ok) {
     throw new Error(`Oclass ${res.status}: ${await res.text().catch(() => res.statusText)}`);
   }
   return (await res.json()) as T;
 }
 
-export async function fetchRawCourses(token: string): Promise<RawCourse[]> {
+export async function fetchRawCourses(): Promise<RawCourse[]> {
   const data = await oclassGet<Paginated<RawCourse>>(
     "/com/service/klasses/?archived=false&canceled=false&is_course=true&offset=0&limit=100",
-    token,
   );
   return data.results ?? [];
 }
@@ -249,16 +295,11 @@ export async function fetchRawCourses(token: string): Promise<RawCourse[]> {
 // The next future, non-cancelled session for a single course.
 // `klass_id` is the working filter param (`klass`, `service`, `klass__id` are
 // silently ignored by the API and return ALL schedules).
-export async function fetchNextSession(
-  token: string,
-  klassId: number,
-  now: Date,
-): Promise<NextSession | null> {
+export async function fetchNextSession(klassId: number, now: Date): Promise<NextSession | null> {
   const from = encodeURIComponent(now.toISOString());
   const data = await oclassGet<Paginated<RawSchedule>>(
     `/com/schedule/schedules/?klass_id=${klassId}&start_datetime__gte=${from}` +
       `&canceled=false&ordering=start_datetime&limit=1`,
-    token,
   );
   const row = data.results?.[0];
   if (!row?.start_datetime) return null;
@@ -283,31 +324,24 @@ function isLive(c: RawCourse): boolean {
 
 // Enrich a set of raw courses with their real next session (in parallel) and
 // transform to the public shape, sorted soonest-first.
-async function enrich(
-  raw: RawCourse[],
-  token: string,
-  now: Date,
-  enrolBase: string,
-): Promise<PublicCourse[]> {
+async function enrich(raw: RawCourse[], now: Date, enrolBase: string): Promise<PublicCourse[]> {
   const sessions = await Promise.all(
-    raw.map((c) =>
-      fetchNextSession(token, c.id, now).catch(() => null /* don't fail the whole set */),
-    ),
+    raw.map((c) => fetchNextSession(c.id, now).catch(() => null /* don't fail the whole set */)),
   );
   return raw.map((c, i) => toPublicCourse(c, sessions[i] ?? null, enrolBase, now)).sort(bySoonest);
 }
 
 // Fetch courses -> keep published/live/with-upcoming -> optional category
 // filter -> enrich each with its real next session (parallel) -> sort by
-// soonest next session.
+// soonest next session. Auth is handled inside the fetch layer (login on
+// demand), so callers no longer pass a token.
 export async function getPublicCourses(
-  token: string,
   now: Date,
   enrolBase: string,
   categoryFilter: string[] = [],
   query = "",
 ): Promise<PublicCourse[]> {
-  const raw = await fetchRawCourses(token);
+  const raw = await fetchRawCourses();
   const q = query.trim().toLowerCase();
   const live = raw.filter(
     (c) =>
@@ -315,7 +349,7 @@ export async function getPublicCourses(
       matchesCategory(c, categoryFilter) &&
       (!q || (c.title ?? "").toLowerCase().includes(q)),
   );
-  return enrich(live, token, now, enrolBase);
+  return enrich(live, now, enrolBase);
 }
 
 // The single soonest-upcoming course whose title contains `query`
@@ -324,13 +358,12 @@ export async function getPublicCourses(
 // Training"` keeps resolving to the next batch as new ones are scheduled.
 // Optional category filter narrows first. Returns null if nothing matches.
 export async function getPublicCourseByQuery(
-  token: string,
   now: Date,
   enrolBase: string,
   query: string,
   categoryFilter: string[] = [],
 ): Promise<PublicCourse | null> {
   if (!query.trim()) return null;
-  const matches = await getPublicCourses(token, now, enrolBase, categoryFilter, query);
+  const matches = await getPublicCourses(now, enrolBase, categoryFilter, query);
   return matches[0] ?? null; // already sorted soonest-first
 }
