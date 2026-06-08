@@ -226,29 +226,32 @@ export function matchesCategory(course: RawCourse, filter: string[]): boolean {
   );
 }
 
-// ---- Auth: login-based token, used until it 401s ---------------------------
+// ---- Auth -------------------------------------------------------------------
 //
-// Oclass invalidates a token whenever ANY system sharing the credentials logs
-// in, so a persisted token goes stale unpredictably. Instead of storing a
-// token, we log in with email+password to mint one, keep using it until a
-// request actually 401s, then re-login once and retry. No timer — a warm
-// instance reuses its token indefinitely; a 401 (rotation/expiry) self-heals.
+// Oclass ROTATES tokens on every login: POST /com/auth/login/ mints a NEW token
+// and INVALIDATES the previous one. Under serverless concurrency, logging in on
+// demand is a footgun — instances invalidate each other's tokens, cascading
+// into a 401/re-login storm that times out the fan-out /api/courses (one
+// schedule sub-request per course).
 //
-// Falls back to a static OCLASS_API_TOKEN when no credentials are configured
-// (e.g. local runs without the login account).
+// So the embed PREFERS a static token (OCLASS_API_TOKEN) minted once from a
+// DEDICATED Oclass account that nothing else logs into. With no further logins
+// the token never rotates, so it stays valid indefinitely and every request
+// just reuses it — no login round-trip, no storm. (The earlier rotation pain
+// came from sharing the personal account, whose token other systems rotated.)
+//
+// login() is a fallback only for environments with NO static token (e.g. a
+// throwaway local run). It rotates, so never point it at the same account a
+// deployed static token depends on.
 
 let cachedToken: string | null = null;
 
 async function login(): Promise<string> {
   const email = process.env.OCLASS_EMAIL;
   const password = process.env.OCLASS_PASSWORD;
-
   if (!email || !password) {
-    const fallback = process.env.OCLASS_API_TOKEN;
-    if (fallback) return (cachedToken = fallback);
-    throw new Error("Oclass auth not configured (need OCLASS_EMAIL+OCLASS_PASSWORD or OCLASS_API_TOKEN)");
+    throw new Error("Oclass auth not configured (set OCLASS_API_TOKEN, or OCLASS_EMAIL+OCLASS_PASSWORD)");
   }
-
   const res = await fetch(`${OCLASS_BASE}/com/auth/login/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -262,23 +265,21 @@ async function login(): Promise<string> {
   return (cachedToken = data.key);
 }
 
-async function token(forceRefresh = false): Promise<string> {
-  if (!forceRefresh && cachedToken) return cachedToken;
+async function token(): Promise<string> {
+  if (cachedToken) return cachedToken;
+  // Primary: the stable static token (dedicated account, never rotated).
+  const staticTok = process.env.OCLASS_API_TOKEN;
+  if (staticTok) return (cachedToken = staticTok);
+  // No static token → mint one via login (rotates; single-process use only).
   return login();
 }
 
 // ---- Oclass fetches --------------------------------------------------------
 
 async function oclassGet<T>(path: string): Promise<T> {
-  let res = await fetch(`${OCLASS_BASE}${path}`, {
+  const res = await fetch(`${OCLASS_BASE}${path}`, {
     headers: { Authorization: `Token ${await token()}` },
   });
-  // Stale token (another system logged in / it expired) → re-login once, retry.
-  if (res.status === 401) {
-    res = await fetch(`${OCLASS_BASE}${path}`, {
-      headers: { Authorization: `Token ${await token(true)}` },
-    });
-  }
   if (!res.ok) {
     throw new Error(`Oclass ${res.status}: ${await res.text().catch(() => res.statusText)}`);
   }

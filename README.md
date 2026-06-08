@@ -143,11 +143,10 @@ cd public && python3 -m http.server 8799   # → http://127.0.0.1:8799
 vercel dev        # then set data-api="http://localhost:3000" in index.html
 ```
 
-For the live-fetch test, Oclass auth is read from the environment (the lib logs
-in on demand):
+For the live-fetch test, the Oclass token is read from the environment:
 
 ```bash
-set -a; source ~/vault/.env; set +a   # OCLASS_EMAIL + OCLASS_PASSWORD (+ OCLASS_COMPANY)
+set -a; source ~/vault/.env; set +a   # OCLASS_API_TOKEN (dedicated-account token)
 npm test
 ```
 
@@ -162,22 +161,31 @@ Environment variables (Vercel → Project → Settings → Environment Variables
 
 | Key | Value |
 |---|---|
-| `OCLASS_EMAIL` | login email of the dedicated Oclass account used by the embed (server-side only) |
-| `OCLASS_PASSWORD` | its password — the server logs in to mint a token on demand (see auth note) |
-| `OCLASS_COMPANY` | `priyan-yoga` (defaults to this if unset) |
+| `OCLASS_API_TOKEN` | static token minted from the **dedicated** Oclass account `priyan+website@priyan.yoga`. Server-side only, never returned to the browser. |
 | `NOTION_API_KEY` | Notion integration token for the weekly-theme hero (`/api/weekly-theme`). Server-side only. |
 | `ALLOW_ORIGIN` | `*` (see note below) |
 | `ENROLL_BASE` | `https://clients.oclass.app/priyan-yoga` |
 
-**Auth is login-based, not a stored token.** Oclass invalidates a token
-whenever any system sharing its credentials logs in, so a persisted
-`OCLASS_API_TOKEN` goes stale unpredictably (→ 502s). Instead, `lib/oclass.ts`
-logs in with `OCLASS_EMAIL`/`OCLASS_PASSWORD` to mint a token, **keeps using it
-until a request 401s, then re-logs-in once and retries** — self-healing, no
-cron. Use a *dedicated* Oclass account that nothing logs into interactively, so
-its token is never rotated out from under the embed. (A static
-`OCLASS_API_TOKEN` is still honoured as a fallback when no credentials are set,
-e.g. some local runs.)
+**Auth: a static token from a dedicated account — deliberately *not*
+login-on-demand.** Oclass **rotates** tokens on every login (each
+`/com/auth/login/` mints a new token and invalidates the previous one), and a
+token is shared per account. That's why the original token — taken from the
+*personal* account — kept dying: every time the nirmana side logged in, the
+embed's token was invalidated (→ 502s). Two traps to avoid:
+
+1. *Don't* log in on demand from the serverless function. Under concurrency,
+   instances invalidate each other's tokens → a 401/re-login storm that times
+   out the fan-out `/api/courses` (one schedule sub-request per course → 504s).
+2. *Do* use a **dedicated** account that nothing else ever logs into. Mint its
+   token once; with no further logins it never rotates, so it stays valid
+   indefinitely and every request just reuses it.
+
+`lib/oclass.ts` therefore **prefers the static `OCLASS_API_TOKEN`** and only
+falls back to a login (`OCLASS_EMAIL`/`OCLASS_PASSWORD`) when no static token is
+set (e.g. a throwaway local run). **Re-mint** only if the token ever dies (it
+shouldn't): `POST https://api.oclass.app/com/auth/login/` with the account
+credentials → use the returned `key` as the new `OCLASS_API_TOKEN`. Credentials
+live in `~/vault/.env`.
 
 Smoke-test after a deploy:
 
